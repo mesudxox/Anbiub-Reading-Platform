@@ -7,6 +7,7 @@ from fastapi import UploadFile, File, Depends
 import os
 import uuid
 import shutil
+from extract import extract_text
 
 
 model.Base.metadata.create_all(bind=engine)
@@ -62,6 +63,30 @@ async def upload_book(
     db.refresh(new_book)
         
     return {"message": "Book uploaded successfully", "book_id": new_book.id}
+@app.get("/books/{book_id}/extract")
+def extract_book_text(
+    book_id: int, 
+    skip: int = 0,    
+    limit: int = 5,   
+    db: Session = Depends(get_db)
+):
+    book = db.query(model.Book).filter(model.Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    try:
+        
+        result = extract_text(book.file_path, start_page=skip, end_page=skip + limit)
+        
+        return {
+            "title": book.title,
+            "page_range": f"Showing pages {skip} to {skip + limit}",
+            "text": result["content"],      
+            "word_map": result["word_map"], 
+            "total_pages": result["total_pages"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
