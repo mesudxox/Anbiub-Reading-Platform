@@ -8,6 +8,7 @@ import os
 import uuid
 import shutil
 from extract import extract_text
+import re
 
 
 model.Base.metadata.create_all(bind=engine)
@@ -73,16 +74,15 @@ def extract_book_text(
     book = db.query(model.Book).filter(model.Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    
     try:
         
         result = extract_text(book.file_path, start_page=skip, end_page=skip + limit)
-        
+        cleaned_content = re.sub(r'[ \t]+', ' ', result["content"]).strip()      
         return {
             "title": book.title,
             "page_range": f"Showing pages {skip} to {skip + limit}",
-            "text": result["content"],      
-            "word_map": result["word_map"], 
+            "text": cleaned_content,
+            "word_map": result["word_map"],
             "total_pages": result["total_pages"]
         }
     except Exception as e:
