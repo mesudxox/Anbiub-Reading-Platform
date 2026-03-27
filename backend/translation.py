@@ -1,27 +1,36 @@
-import google.generativeai as genai
 import os
+from google import genai
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY"),
+    http_options={'api_version': 'v1beta'} 
+)
 
 def translate_to_amharic(english_text):
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
     prompt = f"""
-    Context: You are a professional translator for an educational app called Anbibu.
-    Source Material: The Autobiography of Malcolm X.
-    Task: Translate the text below into natural, powerful Amharic. 
-    Tone: Serious and historical. 
+    You are the translation engine for 'Project Anbibu'. 
+    Task: Create a word-by-word mapping for an interactive reader.
     
-    English Text:
-    {english_text}
-    """
-    
-    response = model.generate_content(prompt)
-    
-    return response.text
+    1. Translate the full text into natural Amharic for the 'Main Translation' view.
+    2. Create a 'word_map' object:
+       - Keys should be the original English words from the text (case-insensitive).
+       - Values should be the most context-appropriate Amharic translation for that specific word.
+       - Exclude common stop-words (a, an, the, is, are).
 
-sample_text = "I am not a racist. I believe in human beings."
-result = translate_to_amharic(sample_text)
-print(f"Amharic Result: {result}")
+    Text:
+    {english_text}
+    
+    Return ONLY a JSON object with these keys: "full_translation", "word_map".
+    """
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", 
+        contents=prompt,
+        config={"response_mime_type": "application/json"}
+    )
+    
+    return json.loads(response.text)
