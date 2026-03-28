@@ -21,8 +21,12 @@ app.add_middleware(CORSMiddleware,
 
 @app.get("/books")
 def list_of_books(db: Session = Depends(get_db)):
-    books = db.query(model.Book).all()
-    return books
+    try:
+        books = db.query(model.Book).all()
+        return books
+    except Exception as e:
+        print(f"❌ DATABASE ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/books/{book_id}")
 def get_book(book_id: int, db: Session = Depends(get_db)):
